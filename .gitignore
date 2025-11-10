@@ -1,5 +1,12 @@
-# Ignore virtual environments
-ven/
-.venv/
+# Python
 __pycache__/
 *.pyc
+
+# Outputs
+outputs/
+*.png
+*.csv
+*.txt
+
+# System files
+.DS_Store
