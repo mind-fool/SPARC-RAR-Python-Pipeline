@@ -62,22 +62,24 @@ def preprocess_data():
 def filter_data():
     """Apply relative-error filtering."""
     print(">>> Filtering high-error data...")
-    filter_high_error_data.filter_data(
-        input_file="outputs/preprocessed_data.csv",
-        output_file="outputs/filtered_data.csv",
-        error_threshold=0.15
-    )
-    return pd.read_csv("outputs/filtered_data.csv")
+    from filter_high_error_data import filter_data
+    filter_data(threshold=0.2)
+    df_filtered = pd.read_csv("filtered_data.csv")
+    return df_filtered
 
+# Instead of calling a non-existent function in report_converter.py
+print(">>> Converting RTF report if needed...")
+user_input = input("Enter the Galaxy ID you want to plot: ").strip()
+    
+if user_input not in data_preprocess.load_sparc_dataset()["ID"].values:
+        print(f"Galaxy '{user_input}' not found. Exiting.")
+import report_converter
 
 def plot_all_rotation_curves(df):
-    """Generate rotation curves for each galaxy."""
-    galaxies = df["Galaxy"].unique()
-    print(f">>> Plotting rotation curves for {len(galaxies)} galaxies...")
-    for g in galaxies:
-        plot_rotation_curve.plot_rotation_curve(df, g,
-            output_path=f"outputs/rotation_curves/{g}.png")
-
+    """Plot rotation curve for a single galaxy chosen by the user."""
+    galaxies = df["ID"].unique()
+    print(f">>> Available galaxies: {len(galaxies)}")
+    return plot_rotation_curve.plot_rotation_curve(user_input)
 
 def visualize_rar(df):
     """Generate RAR visualizations."""
@@ -86,27 +88,23 @@ def visualize_rar(df):
 
 
 def fit_burkert_for_all(df):
-    """Fit Burkert halos for each galaxy individually."""
-    galaxies = df["Galaxy"].unique()
-    print(f">>> Fitting Burkert halo profiles for {len(galaxies)} galaxies...")
-    for g in galaxies:
-        burkert_halo_fit.fit_and_plot(df, g,
-            output_file=f"outputs/halo_fits/{g}_burkert_fit.png")
-
+    """Fit Burkert halo for the user-selected galaxy only."""
+    print(f">>> Fitting Burkert halo profile for galaxy '{user_input}'...")
+    burkert_halo_fit.fit_burkert(user_input)
 
 def compute_g0(df):
     """Compute best-fit RAR acceleration scale."""
     print(">>> Performing best-fit calculation for RAR...")
-    g0 = best_fit_calculation.calculate_best_fit_g0(df)
+    g0 = best_fit_calculation.fit_rar()
     print(f"BEST-FIT g0 = {g0:.3e} m/s^2")
     return g0
-
 
 def generate_final_report(df, g0):
     """Generate summary."""
     print(">>> Generating summary report...")
-    rar_summary.generate_summary(df, g0, output_file="outputs/FINAL_SUMMARY.txt")
-
+    import rar_summary
+    rar_summary.generate_report()
+    print("Final report generated")
 
 def main():
     print("========================================")
