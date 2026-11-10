@@ -8,6 +8,14 @@ def process_sparc_dataset(path="GALAXY_CSVDATA.csv"):
     """
     return load_sparc_dataset(path)
 
+DISK_MASS_TO_LIGHT = 0.5
+BULGE_MASS_TO_LIGHT = 0.7
+
+
+def signed_square(velocity):
+    """Return |V|V, preserving the sign of a velocity contribution."""
+    return velocity.abs() * velocity
+
 def load_sparc_dataset(path="GALAXY_CSVDATA.csv"):
     """
     Loads and prepares SPARC-style galaxy rotation curve data.
@@ -42,11 +50,13 @@ def load_sparc_dataset(path="GALAXY_CSVDATA.csv"):
     df['Vbul_ms'] = df['Vbul_kms'] * km_to_m
     df['R_m'] = df['R_kpc'] * kpc_to_m
 
-    df['Vbar_kms'] = np.sqrt(
-        df['Vgas_kms']**2 +
-        df['Vdisk_kms']**2 +
-        df['Vbul_kms']**2
-    )
+    vbar_squared = (
+    signed_square(df['Vgas_kms'])
+    + DISK_MASS_TO_LIGHT * signed_square(df['Vdisk_kms'])
+    + BULGE_MASS_TO_LIGHT * signed_square(df['Vbul_kms'])
+)
+
+    df['Vbar_kms'] = np.sqrt(vbar_squared.where(vbar_squared > 0))
     df['Vbar_ms'] = df['Vbar_kms'] * km_to_m
 
     df['g_obs'] = df['Vobs_ms']**2 / df['R_m']
