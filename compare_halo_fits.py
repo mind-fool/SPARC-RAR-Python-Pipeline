@@ -10,14 +10,18 @@ def main():
     parser = argparse.ArgumentParser(
         description="Compare Burkert and NFW fits for one SPARC galaxy."
     )
-    parser.add_argument("galaxy_id", help="SPARC galaxy ID, such as NGC0100")
+    parser.add_argument("galaxy_id", nargs="?", help="SPARC galaxy ID")
     args = parser.parse_args()
+
+    requested_id = args.galaxy_id or input("Enter a SPARC galaxy ID (e.g., NGC0100): ")
+    requested_id = requested_id.strip()
 
     df = load_sparc_dataset()
     available_ids = {name.casefold(): name for name in df["ID"].unique()}
-    galaxy_id = available_ids.get(args.galaxy_id.strip().casefold())
+    galaxy_id = available_ids.get(requested_id.casefold())
+
     if galaxy_id is None:
-        parser.error(f"Galaxy {args.galaxy_id!r} was not found in SPARC data.")
+        parser.error(f"Galaxy {requested_id!r} was not found in SPARC data.")
 
     burkert = fit_halo(galaxy_id, df=df, model="burkert", plot=False)
     nfw = fit_halo(galaxy_id, df=df, model="nfw", plot=False)
