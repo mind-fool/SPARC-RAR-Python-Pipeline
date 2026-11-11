@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import argparse
 from scipy.optimize import curve_fit
 
 from data_preprocess import load_sparc_dataset
@@ -198,4 +199,20 @@ def fit_burkert(galaxy_id, df=None, output_path=None):
 
 
 if __name__ == "__main__":
-    fit_burkert("UGC02953")
+    parser = argparse.ArgumentParser(
+        description="Fit a Burkert halo to a SPARC galaxy."
+    )
+    parser.add_argument("galaxy_id", nargs="?", help="SPARC galaxy ID")
+    args = parser.parse_args()
+
+    requested_id = args.galaxy_id or input("Enter a SPARC galaxy ID: ")
+    requested_id = requested_id.strip()
+
+    df = load_sparc_dataset()
+    available_ids = {name.casefold(): name for name in df["ID"].unique()}
+    galaxy_id = available_ids.get(requested_id.casefold())
+
+    if galaxy_id is None:
+        parser.error(f"Galaxy {requested_id!r} was not found in SPARC data.")
+
+    fit_burkert(galaxy_id, df=df, output_path=f"{galaxy_id}_burkert_fit.png")
