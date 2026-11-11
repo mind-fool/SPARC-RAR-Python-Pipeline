@@ -4,40 +4,7 @@ import argparse
 from scipy.optimize import curve_fit
 
 from data_preprocess import load_sparc_dataset
-
-
-# Astrophysical-unit gravitational constant:
-# kpc (km/s)^2 / solar mass
-G_KPC = 4.30091e-6
-PC3_TO_KPC3 = 1.0e9
-
-
-def burkert_halo_velocity(radius_kpc, rho0_msun_pc3, r0_kpc):
-    """Calculate the Burkert-halo circular velocity in km/s."""
-    radius_kpc = np.asarray(radius_kpc, dtype=float)
-    x = radius_kpc / r0_kpc
-
-    shape = (
-        np.log1p(x)
-        + 0.5 * np.log1p(x**2)
-        - np.arctan(x)
-    )
-
-    rho0_msun_kpc3 = rho0_msun_pc3 * PC3_TO_KPC3
-
-    enclosed_mass_msun = (
-        2.0
-        * np.pi
-        * rho0_msun_kpc3
-        * r0_kpc**3
-        * shape
-    )
-
-    velocity_squared = (
-        G_KPC * enclosed_mass_msun / radius_kpc
-    )
-
-    return np.sqrt(np.maximum(velocity_squared, 0.0))
+from halo_models import burkert_halo_velocity
 
 
 def fit_burkert(galaxy_id, df=None, output_path=None):
