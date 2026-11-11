@@ -65,6 +65,6 @@ a galaxy ID interactively. The script saves the figure as
 
 * Extend the pipeline to support other halo models and batch processing.
 
-##License
+### License
 
 *  This project is released under the MIT License.
