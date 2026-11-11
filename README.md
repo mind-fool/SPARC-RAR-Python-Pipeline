@@ -1,12 +1,12 @@
-##SPARC-RAR-Python-Pipeline
+### SPARC-RAR-Python-Pipeline
 
 A Python pipeline for analyzing the SPARC galaxy dataset to reproduce the Radial Acceleration Relation (RAR), including data preprocessing, uncertainty propagation, nonlinear fitting, and rotation curve visualization.
 
-##Overview
+### Overview
 
 This repository provides a complete workflow to process SPARC galaxy rotation curve data, compute observed and baryonic accelerations, filter high-error points, visualize rotation curves, plot the Radial Acceleration Relation (RAR), fit Burkert halo profiles, and generate a summary report including the best-fit acceleration scale g0. The project has recently been updated to streamline the structure: several files were renamed, removed, or merged to reduce redundancy and improve clarity. The main modules now include report_converter.py, data_preprocess.py, filter_high_error_data.py, plot_rotation_curve.py, visualize_rotation_rar.py, burkert_halo_fit.py, best_fit_calculation.py, rar_summary.py, and main.py as the pipeline controller.
 
-##Features
+### Features
 
 * Convert SPARC RTF reports to text and CSV formats (report_converter.py)
 
@@ -41,7 +41,21 @@ This repository provides a complete workflow to process SPARC galaxy rotation cu
 
 * Users can input specific galaxy IDs to generate individual rotation curve plots and halo fits.
 
-##Future Work
+### Compare Burkert and NFW
+
+From the repository folder with the virtual environment activated, generate
+the CSV from the bundled SPARC data and run a benchmark.
+
+```bash
+python3 report_converter.py
+python3 compare_halo_fits.py NGC0100
+```
+
+Generate the CSV once per checkout. Run `python3 compare_halo_fits.py` to enter
+a galaxy ID interactively. The script saves the figure as
+`<galaxy_id>_halo_comparison.png`.
+
+### Future Work
 
 * Expand the dataset to include more galaxies.
 
