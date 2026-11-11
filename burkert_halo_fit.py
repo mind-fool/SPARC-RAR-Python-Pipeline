@@ -15,7 +15,7 @@ HALO_MODELS = {
 }
 
 
-def fit_halo(galaxy_id, df=None, output_path=None, *, model="burkert"):
+def fit_halo(galaxy_id, df=None, output_path=None, *, model="burkert", plot=True):
     """Fit baryons plus the selected halo to a SPARC rotation curve."""
     if model not in HALO_MODELS:
         raise ValueError(f"Unknown halo model: {model!r}")
@@ -77,6 +77,21 @@ def fit_halo(galaxy_id, df=None, output_path=None, *, model="burkert"):
     print(f"{radius_name} = {scale_radius:.6g} ± {scale_radius_error:.2g} kpc")
     print(f"reduced chi-squared = {reduced_chi_squared:.3f}")
 
+    result = {
+        f"{density_name}_msun_pc3": density,
+        f"{density_name}_error_msun_pc3": density_error,
+        f"{radius_name}_kpc": scale_radius,
+        f"{radius_name}_error_kpc": scale_radius_error,
+        "reduced_chi_squared": reduced_chi_squared,
+        "radius_kpc": radius,
+        "observed_kms": observed,
+        "error_kms": error,
+        "model_kms": total,
+        "residuals_kms": residuals,
+    }
+    if not plot:
+        return result
+    
     fig, ax = plt.subplots()
     ax.errorbar(radius, observed, yerr=error, fmt="o", label="Observed")
     ax.plot(radius, baryonic, label="Baryonic")
@@ -96,13 +111,7 @@ def fit_halo(galaxy_id, df=None, output_path=None, *, model="burkert"):
     plt.show()
     plt.close(fig)
 
-    return {
-        f"{density_name}_msun_pc3": density,
-        f"{density_name}_error_msun_pc3": density_error,
-        f"{radius_name}_kpc": scale_radius,
-        f"{radius_name}_error_kpc": scale_radius_error,
-        "reduced_chi_squared": reduced_chi_squared,
-    }
+    return result
 
 
 def fit_burkert(galaxy_id, df=None, output_path=None):
