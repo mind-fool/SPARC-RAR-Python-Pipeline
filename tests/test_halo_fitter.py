@@ -4,6 +4,11 @@ from io import StringIO
 
 import numpy as np
 import pandas as pd
+import sys
+from pathlib import Path
+
+if __name__ == "__main__":
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from burkert_halo_fit import fit_halo
 from halo_models import burkert_halo_velocity, nfw_halo_velocity
@@ -46,3 +51,5 @@ class TestHaloFitter(unittest.TestCase):
             (0.018, 7.5),
             ("rho_s_msun_pc3", "r_s_kpc"),
         )
+if __name__ == "__main__":
+    unittest.main(verbosity=2)
