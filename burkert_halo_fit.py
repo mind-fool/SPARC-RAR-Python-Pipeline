@@ -7,6 +7,8 @@ from scipy.optimize import curve_fit
 from data_preprocess import load_sparc_dataset
 from halo_models import burkert_halo_velocity, nfw_halo_velocity
 
+# Baseline upper bound on the fitted halo scale radius, in kpc.
+# Override it for a single run with --max-scale-radius-kpc.
 DEFAULT_MAX_SCALE_RADIUS_KPC = 100.0
 
 # Each entry contains a velocity function, a plot label, and parameter names.
