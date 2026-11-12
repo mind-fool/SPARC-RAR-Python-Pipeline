@@ -77,7 +77,7 @@ def fit_halo(
         observed,
         sigma=error,
         absolute_sigma=True,
-        p0=(0.05, 5.0),
+        p0=(0.05, radius_guess),
         bounds=(lower_bounds, upper_bounds),
         maxfev=20_000,
     )
