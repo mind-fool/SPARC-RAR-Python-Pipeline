@@ -16,11 +16,20 @@ def signed_square(velocity):
     """Return |V|V, preserving the sign of a velocity contribution."""
     return velocity.abs() * velocity
 
-def load_sparc_dataset(path="GALAXY_CSVDATA.csv"):
-    """
-    Loads and prepares SPARC-style galaxy rotation curve data.
-    Returns a processed DataFrame with accelerations computed.
-    """
+def load_sparc_dataset(
+    path="GALAXY_CSVDATA.csv",
+    *,
+    disk_mass_to_light=DISK_MASS_TO_LIGHT,
+    bulge_mass_to_light=BULGE_MASS_TO_LIGHT,
+):
+    """Prepare SPARC data using stellar mass-to-light ratios in solar units."""
+    for name, ratio in (
+        ("disk_mass_to_light", disk_mass_to_light),
+        ("bulge_mass_to_light", bulge_mass_to_light),
+    ):
+        if not np.isfinite(ratio) or ratio < 0:
+            raise ValueError(f"{name} must be finite and nonnegative.")
+        
     df = pd.read_csv(path, sep=None, engine="python", skipinitialspace=True)
 
     colmap = {
@@ -51,10 +60,7 @@ def load_sparc_dataset(path="GALAXY_CSVDATA.csv"):
     df['R_m'] = df['R_kpc'] * kpc_to_m
 
     vbar_squared = (
-    signed_square(df['Vgas_kms'])
-    + DISK_MASS_TO_LIGHT * signed_square(df['Vdisk_kms'])
-    + BULGE_MASS_TO_LIGHT * signed_square(df['Vbul_kms'])
-)
+        signed_square(df["Vgas_kms"])+ disk_mass_to_light * signed_square(df["Vdisk_kms"]) + bulge_mass_to_light * signed_square(df["Vbul_kms"]))
 
     df['Vbar_kms'] = np.sqrt(vbar_squared.where(vbar_squared > 0))
     df['Vbar_ms'] = df['Vbar_kms'] * km_to_m
