@@ -7,6 +7,7 @@ from scipy.optimize import curve_fit
 from data_preprocess import load_sparc_dataset
 from halo_models import burkert_halo_velocity, nfw_halo_velocity
 
+DEFAULT_MAX_SCALE_RADIUS_KPC = 100.0
 
 # Each entry contains a velocity function, a plot label, and parameter names.
 HALO_MODELS = {
@@ -15,7 +16,10 @@ HALO_MODELS = {
 }
 
 
-def fit_halo(galaxy_id, df=None, output_path=None, *, model="burkert", plot=True):
+def fit_halo(
+    galaxy_id, df=None, output_path=None, *, model="burkert", plot=True,
+    max_scale_radius_kpc=DEFAULT_MAX_SCALE_RADIUS_KPC,
+):
     """Fit baryons plus the selected halo to a SPARC rotation curve."""
     if model not in HALO_MODELS:
         raise ValueError(f"Unknown halo model: {model!r}")
@@ -55,7 +59,15 @@ def fit_halo(galaxy_id, df=None, output_path=None, *, model="burkert", plot=True
         return np.hypot(baryonic_speed, halo)
 
     lower_bounds = (1e-5, 0.01)
-    upper_bounds = (10.0, 100.0)
+    min_scale_radius_kpc = lower_bounds[1]
+
+    if not np.isfinite(max_scale_radius_kpc) or max_scale_radius_kpc <= min_scale_radius_kpc:
+        raise ValueError(
+            f"Maximum scale radius must be finite and above {min_scale_radius_kpc:g} kpc."
+        )
+
+    upper_bounds = (10.0, max_scale_radius_kpc)
+    radius_guess = min(5.0, (min_scale_radius_kpc + max_scale_radius_kpc) / 2.0)
     
     parameters, covariance = curve_fit(
         total_speed,
@@ -126,7 +138,10 @@ def fit_halo(galaxy_id, df=None, output_path=None, *, model="burkert", plot=True
     fig.tight_layout()
 
     if output_path is None:
-        output_path = f"{galaxy_id}_{model}_fit.png"
+        suffix = ""
+        if max_scale_radius_kpc != DEFAULT_MAX_SCALE_RADIUS_KPC:
+            suffix = f"_cap{max_scale_radius_kpc:g}kpc"
+        output_path = f"{galaxy_id}_{model}{suffix}_fit.png"
 
     fig.savefig(output_path, dpi=300)
     plt.show()
@@ -144,6 +159,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Fit a halo to a SPARC galaxy.")
     parser.add_argument("galaxy_id", nargs="?", help="SPARC galaxy ID")
     parser.add_argument("--model", choices=HALO_MODELS, default="burkert")
+    parser.add_argument(
+        "--max-scale-radius-kpc",
+        type=float,
+        default=DEFAULT_MAX_SCALE_RADIUS_KPC,
+        help="Upper fit limit for the halo scale radius in kpc (default: %(default)g)",
+    )
     args = parser.parse_args()
 
     requested_id = (args.galaxy_id or input("Enter a SPARC galaxy ID: ")).strip()
@@ -154,4 +175,12 @@ if __name__ == "__main__":
     if galaxy_id is None:
         parser.error(f"Galaxy {requested_id!r} was not found in SPARC data.")
 
-    fit_halo(galaxy_id, df=df, model=args.model)
+    try:
+        fit_halo(
+            galaxy_id,
+            df=df,
+            model=args.model,
+            max_scale_radius_kpc=args.max_scale_radius_kpc,
+        )
+    except ValueError as error:
+        parser.error(str(error))
