@@ -1,10 +1,12 @@
 ### SPARC-RAR-Python-Pipeline
 
-A Python pipeline for analyzing the SPARC galaxy dataset to reproduce the Radial Acceleration Relation (RAR), including data preprocessing, uncertainty propagation, nonlinear fitting, and rotation curve visualization.
+A Python pipeline for reproducing the radial acceleration relation (RAR) and comparing galaxy rotation-curve models using public SPARC data.
 
 ### Overview
 
-This repository provides a complete workflow to process SPARC galaxy rotation curve data, compute observed and baryonic accelerations, filter high-error points, visualize rotation curves, plot the Radial Acceleration Relation (RAR), fit Burkert halo profiles, and generate a summary report including the best-fit acceleration scale g0. The project has recently been updated to streamline the structure: several files were renamed, removed, or merged to reduce redundancy and improve clarity. The main modules now include report_converter.py, data_preprocess.py, filter_high_error_data.py, plot_rotation_curve.py, visualize_rotation_rar.py, burkert_halo_fit.py, best_fit_calculation.py, rar_summary.py, and main.py as the pipeline controller.
+The RAR workflow computes observed and baryonic accelerations and estimates the characteristic acceleration scale `g0`. The rotation-curve workflow compares baryons plus a Burkert halo with baryons plus an NFW halo using the same measured velocities and quoted uncertainties. It plots both fitted curves and their residuals against radius.
+
+The rotation curves and baryonic components come from the [SPARC Newtonian mass-model table](https://astroweb.case.edu/SPARC/MassModels_Lelli2016c.mrt).
 
 ### Features
 
@@ -18,7 +20,11 @@ This repository provides a complete workflow to process SPARC galaxy rotation cu
 
 * Plot the full Radial Acceleration Relation (visualize_rotation_rar.py)
 
-* Fit Burkert halo profiles to selected galaxies (burkert_halo_fit.py)
+* Fit baryons plus a Burkert or NFW halo and flag fitted parameters near their bounds (`halo_models.py`, `burkert_halo_fit.py`).
+
+* Compare both models on the same galaxy with a rotation-curve plot and a residual panel (`compare_halo_fits.py`).
+
+* Verify the halo equations by numerical integration and test parameter recovery on synthetic rotation curves (`tests/`).
 
 * Compute the best-fit RAR acceleration scale g0 (best_fit_calculation.py)
 
@@ -55,15 +61,34 @@ Generate the CSV once per checkout. Run `python3 compare_halo_fits.py` to enter
 a galaxy ID interactively. The script saves the figure as
 `<galaxy_id>_halo_comparison.png`.
 
+#### Change the NFW scale-radius limit
+
+The default upper limit on the fitted scale radius is 100 kpc. Use `--max-scale-radius-kpc` to set a different limit for a single run.
+
+```bash
+# Fit NFW with the default 100 kpc limit
+python3 burkert_halo_fit.py NGC0100 --model nfw
+
+# Repeat with a 300 kpc limit
+python3 burkert_halo_fit.py NGC0100 --model nfw --max-scale-radius-kpc 300
+```
+
+Running `compare_halo_fits.py` from the editor prompts for a galaxy ID and uses the default limit for both fits. Run `python3 burkert_halo_fit.py --help` to see the individual fitter's options.
+
+### Tests
+
+Run the full test suite from the repository folder.
+
+```bash
+python3 -m unittest discover -s tests -v
+```
+
 ### Future Work
+* Automate the full-sample NFW scale-radius sensitivity sweep and save the per-galaxy results.
 
-* Expand the dataset to include more galaxies.
+* Test how stellar mass-to-light assumptions affect the Burkert–NFW comparison.
 
-* Incorporate alternative gravity models such as MOND or conformal gravity.
-
-* Automate report generation with additional visualizations and statistics.
-
-* Extend the pipeline to support other halo models and batch processing.
+* Validate a conformal-gravity implementation against a reference rotation curve, then compare it with the halo fits using the same SPARC measurements.
 
 ### License
 
