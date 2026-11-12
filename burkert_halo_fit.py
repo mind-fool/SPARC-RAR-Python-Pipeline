@@ -54,6 +54,9 @@ def fit_halo(galaxy_id, df=None, output_path=None, *, model="burkert", plot=True
         halo = halo_speed(radius_kpc, density_msun_pc3, scale_radius_kpc)
         return np.hypot(baryonic_speed, halo)
 
+    lower_bounds = (1e-5, 0.01)
+    upper_bounds = (10.0, 100.0)
+    
     parameters, covariance = curve_fit(
         total_speed,
         radius,
@@ -61,7 +64,7 @@ def fit_halo(galaxy_id, df=None, output_path=None, *, model="burkert", plot=True
         sigma=error,
         absolute_sigma=True,
         p0=(0.05, 5.0),
-        bounds=((1e-5, 0.01), (10.0, 100.0)),
+        bounds=(lower_bounds, upper_bounds),
         maxfev=20_000,
     )
     density, scale_radius = parameters
@@ -76,6 +79,23 @@ def fit_halo(galaxy_id, df=None, output_path=None, *, model="burkert", plot=True
     print(f"{density_name} = {density:.6g} ± {density_error:.2g} Msun/pc^3")
     print(f"{radius_name} = {scale_radius:.6g} ± {scale_radius_error:.2g} kpc")
     print(f"reduced chi-squared = {reduced_chi_squared:.3f}")
+    bound_hits = {}
+    parameter_labels = ((density_name, "Msun/pc^3"), (radius_name, "kpc"))
+
+    
+    for (name, unit), value, lower, upper in zip(
+        parameter_labels, parameters, lower_bounds, upper_bounds
+    ):
+        if np.isclose(value, lower, rtol=1e-5, atol=0.0):
+            side, limit = "lower", lower
+        elif np.isclose(value, upper, rtol=1e-5, atol=0.0):
+            side, limit = "upper", upper
+        else:
+            continue
+
+        bound_hits[name] = side
+        print(f"Warning: {name} is near the {side} fit bound ({limit:g} {unit}).")
+    
 
     result = {
         f"{density_name}_msun_pc3": density,
@@ -86,6 +106,7 @@ def fit_halo(galaxy_id, df=None, output_path=None, *, model="burkert", plot=True
         "radius_kpc": radius,
         "observed_kms": observed,
         "error_kms": error,
+        "bound_hits": bound_hits,
         "model_kms": total,
         "residuals_kms": residuals,
     }
