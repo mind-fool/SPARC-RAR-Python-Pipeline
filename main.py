@@ -68,7 +68,10 @@ def main():
     print(">>> Plotting rotation curves for selected galaxies...")
     for gid in galaxy_ids:
         if gid in df_filtered['ID'].values:
-            plot_rotation_curve.plot_rotation_curve(gid)
+            plot_rotation_curve.plot_rotation_curve(
+                gid,
+                output_path=f"outputs/rotation_curves/{gid}_rotation_curve.png",
+            )
         else:
             print(f"Galaxy '{gid}' not found. Skipping.")
     print(">>> Creating RAR plots for full dataset...")
