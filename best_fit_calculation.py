@@ -5,8 +5,9 @@ import numpy as np
 def rar_model(gbar, g0):
     return gbar / (1 - np.exp(-np.sqrt(gbar / g0)))
 
-def fit_rar():
-    df = load_sparc_dataset()
+def fit_rar(df=None):
+    if df is None:
+        df = load_sparc_dataset()
     mask = (df['g_bar'] > 0) & (df['g_obs'] > 0)
     gbar = df[mask]['g_bar'].values
     gobs = df[mask]['g_obs'].values
