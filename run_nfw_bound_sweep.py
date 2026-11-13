@@ -51,7 +51,7 @@ def fit_for_sweep(galaxy_id, dataset, model, cap_kpc):
     return {f"{model}_{name}": value for name, value in fields.items()}
 
 
-def main():
+def main(output_path=None):
     project_dir = Path(__file__).resolve().parent
     data_path = project_dir / "GALAXY_CSVDATA.csv"
     if not data_path.is_file():
@@ -94,7 +94,8 @@ def main():
             })
 
     results = pd.DataFrame(rows)
-    output_path = project_dir / "nfw_bound_sweep.csv"
+    if output_path is None:
+        output_path = project_dir / "nfw_bound_sweep.csv"
     results.to_csv(output_path, index=False)
 
     for cap_kpc, group in results.groupby("nfw_cap_kpc", sort=True):

@@ -21,7 +21,7 @@ STELLAR_SETTINGS = (
 )
 
 
-def main():
+def main(output_path=None):
     project_dir = Path(__file__).resolve().parent
     data_path = project_dir / "GALAXY_CSVDATA.csv"
     if not data_path.is_file():
@@ -74,7 +74,8 @@ def main():
         default="nfw",
     )
 
-    output_path = project_dir / "mass_to_light_sweep.csv"
+    if output_path is None:
+        output_path = project_dir / "mass_to_light_sweep.csv"
     results.to_csv(output_path, index=False)
 
     rankings = results.pivot(

@@ -1,7 +1,7 @@
 from data_preprocess import load_sparc_dataset
 import matplotlib.pyplot as plt
 
-def plot_rotation_curve(galaxy_id, df=None, output_path=None):
+def plot_rotation_curve(galaxy_id, df=None, output_path=None, *, show=True):
     """
     Plots the rotation curve for a galaxy.
     df: optional preloaded DataFrame
@@ -29,7 +29,9 @@ def plot_rotation_curve(galaxy_id, df=None, output_path=None):
     if output_path:
         plt.savefig(output_path, dpi=300)
         print(f"Saved rotation curve to {output_path}")
-    plt.show()
+    if show:
+        plt.show()
+    plt.close()
 
 if __name__ == "__main__":
     plot_rotation_curve("UGC02953")

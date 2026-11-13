@@ -41,11 +41,16 @@ The rotation curves and baryonic components come from the [SPARC Newtonian mass-
 
 ##Usage
 
-* Run the full pipeline using main.py, which handles all steps automatically including data conversion, preprocessing, filtering, plotting, halo fitting, g0 computation, and summary report generation.
+Run `python3 main.py` from the project folder, or open `main.py` and press Run.
+The menu offers the RAR analysis, selected-galaxy rotation curves and halo fits,
+the NFW radius-limit sweep, and the stellar mass-to-light sweep. Choose **5**
+to run all analyses. The pipeline prepares the input CSV if needed and saves
+the results under `outputs/`.
 
-* Example outputs include rotation curve plots and RAR plots for galaxies such as UGC02953, showing baryonic versus observed accelerations for the full dataset.
-
-* Users can input specific galaxy IDs to generate individual rotation curve plots and halo fits.
+The RAR plot, fitted `g0`, and RAR summary use the same relative-error cut.
+The halo fits use the preprocessed rotation curves before that cut.
+The radius-limit sweep for the 175-galaxy study is menu option **3** and
+writes `outputs/sweeps/nfw_bound_sweep.csv`.
 
 ### Compare Burkert and NFW
 
@@ -84,10 +89,6 @@ python3 -m unittest discover -s tests -v
 ```
 
 ### Future Work
-* Automate the full-sample NFW scale-radius sensitivity sweep and save the per-galaxy results.
-
-* Test how stellar mass-to-light assumptions affect the Burkert–NFW comparison.
-
 * Validate a conformal-gravity implementation against a reference rotation curve, then compare it with the halo fits using the same SPARC measurements.
 
 ### License

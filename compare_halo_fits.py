@@ -25,7 +25,11 @@ def main():
 
     burkert = fit_halo(galaxy_id, df=df, model="burkert", plot=False)
     nfw = fit_halo(galaxy_id, df=df, model="nfw", plot=False)
+    plot_halo_comparison(galaxy_id, burkert, nfw)
 
+
+def plot_halo_comparison(galaxy_id, burkert, nfw, output_path=None, *, show=True):
+    """Plot the curves and residuals from two existing fits."""
     fig, (curve_ax, residual_ax) = plt.subplots(
         2, 1, sharex=True, figsize=(8, 6.5),
         gridspec_kw={"height_ratios": [2, 1]},
@@ -59,10 +63,12 @@ def main():
     curve_ax.grid(alpha=0.25)
     residual_ax.grid(alpha=0.25)
 
-    output = f"{galaxy_id}_halo_comparison.png"
+    output = output_path or f"{galaxy_id}_halo_comparison.png"
     fig.savefig(output, dpi=300)
     print(f"Saved {output}")
-    plt.show()
+    if show:
+        plt.show()
+    plt.close(fig)
 
 
 if __name__ == "__main__":

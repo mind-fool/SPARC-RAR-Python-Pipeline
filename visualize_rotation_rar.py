@@ -1,4 +1,5 @@
 from data_preprocess import load_sparc_dataset
+from best_fit_calculation import rar_model
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -27,7 +28,7 @@ def plot_rotation_curve(galaxy_id, output_path=None):
         plt.savefig(f"{galaxy_id}_rotation_curve.png", dpi=300)
     plt.show()
 
-def plot_rar(df=None, output_path="RAR_plot.png"):
+def plot_rar(df=None, output_path="RAR_plot.png", *, g0=None, show=True):
     if df is None:
         df = load_sparc_dataset()
     
@@ -40,6 +41,9 @@ def plot_rar(df=None, output_path="RAR_plot.png"):
     x = np.logspace(np.log10(df['g_bar'].min()), np.log10(df['g_bar'].max()), 100)
     y = x
     plt.loglog(x, y, 'r--', label='y = x', linewidth=1.5)
+    if g0 is not None:
+        plt.loglog(x, rar_model(x, g0), color="black", linewidth=2,
+                   label=f"RAR fit (g₀ = {g0:.3e} m/s²)")
 
     plt.xlabel("Baryonic Acceleration g_bar (m/s²)")
     plt.ylabel("Observed Acceleration g_obs (m/s²)")
@@ -50,7 +54,10 @@ def plot_rar(df=None, output_path="RAR_plot.png"):
 
     if output_path:
         plt.savefig(output_path, dpi=300)
-    plt.show()
+        print(f"Saved RAR plot to {output_path}")
+    if show:
+        plt.show()
+    plt.close()
 
 if __name__ == "__main__":
     plot_rotation_curve("UGC02953")

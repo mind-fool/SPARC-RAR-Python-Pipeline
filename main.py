@@ -1,98 +1,121 @@
-"""
-MAIN PIPELINE CONTROLLER FOR SPARC RAR ANALYSIS
-This script runs the full project workflow:
-1) Convert RTF → text → CSV (if needed)
-2) Preprocess SPARC data
-3) Filter high-error data
-4) Plot rotation curves for selected galaxies
-5) Compute and visualize RAR
-6) Fit halo models (Burkert) for selected galaxies
-7) Compute best-fit RAR acceleration scale g0
-8) Generate final summary report
-"""
+"""Run the SPARC analysis workflows from one entry point."""
 
-import os
-import pandas as pd
-import report_converter
-import data_preprocess
-import filter_high_error_data
-import plot_rotation_curve
-import visualize_rotation_rar
-import burkert_halo_fit
-import best_fit_calculation
-import rar_summary
-def ensure_output_dirs():
-    """Create folders if they don't exist."""
-    dirs = [
-        'outputs',
-        'outputs/rotation_curves',
-        'outputs/rar_plots',
-        'outputs/halo_fits'
-    ]
-    for d in dirs:
-        os.makedirs(d, exist_ok=True)
-def convert_rtf_if_needed():
-    """Convert the raw RTF report into usable text + CSV."""
-    if not os.path.exists("Galaxy_textfile.txt"):
-        print(">>> Converting RTF to text...")
-        report_converter.convert_rtf_to_text("Galaxy_textfile.rtf", "Galaxy_textfile.txt")
-    
-    if not os.path.exists("GALAXY_CSVDATA.csv"):
-        print(">>> Converting raw text to CSV...")
-        report_converter.convert_text_to_csv("Galaxy_textfile.txt", "GALAXY_CSVDATA.csv")
-def preprocess_data():
-    """Run preprocessing and return DataFrame."""
-    print(">>> Preprocessing SPARC dataset...")
-    df = data_preprocess.process_sparc_dataset("GALAXY_CSVDATA.csv")
-    df.to_csv("outputs/preprocessed_data.csv", index=False)
-    return df
-def filter_data():
-    """Apply relative-error filtering."""
-    print(">>> Filtering high-error data...")
-    from filter_high_error_data import filter_data
-    filter_data(threshold=0.2)
-    df_filtered = pd.read_csv("filtered_data.csv")
-    return df_filtered
+from pathlib import Path
+
+from best_fit_calculation import fit_rar
+from burkert_halo_fit import DEFAULT_MAX_SCALE_RADIUS_KPC, fit_halo
+from compare_halo_fits import plot_halo_comparison
+from data_preprocess import load_sparc_dataset
+from filter_high_error_data import filter_data
+from plot_rotation_curve import plot_rotation_curve
+from rar_summary import generate_report
+from report_converter import convert_rtf_to_text, convert_text_to_csv
+from run_mass_to_light_sweep import main as run_mass_to_light_sweep
+from run_nfw_bound_sweep import main as run_nfw_bound_sweep
+from visualize_rotation_rar import plot_rar
+
+
+PROJECT_DIR = Path(__file__).resolve().parent
+DATA_PATH = PROJECT_DIR / "GALAXY_CSVDATA.csv"
+OUTPUT_DIR = PROJECT_DIR / "outputs"
+
+
+def prepare_input():
+    """Generate the input CSV on a fresh checkout."""
+    if DATA_PATH.is_file():
+        return
+    text_path = PROJECT_DIR / "Galaxy_textfile.txt"
+    if not text_path.is_file():
+        result = convert_rtf_to_text(PROJECT_DIR / "Galaxy_textfile.rtf", text_path)
+        if result is None:
+            raise SystemExit("Could not convert the bundled SPARC report.")
+    convert_text_to_csv(text_path, DATA_PATH)
+
+
+def run_rar_workflow(data):
+    """Fit, plot and summarize the same filtered acceleration data."""
+    filtered = filter_data(df=data, output_path=OUTPUT_DIR / "filtered_data.csv")
+    g0 = fit_rar(filtered)
+    plot_rar(filtered, output_path=OUTPUT_DIR / "rar_plots" / "rar_full.png",
+             g0=g0, show=False)
+    generate_report(df=filtered, g0=g0)
+
+
+def run_galaxy_workflow(data):
+    """Save the baryonic curve, both halo fits and the comparison for each ID."""
+    available = {name.casefold(): name for name in data["ID"].unique()}
+    requested = input("Enter galaxy IDs separated by commas [NGC0100]: ").strip()
+    galaxy_ids = []
+    for name in (requested or "NGC0100").split(","):
+        name = name.strip()
+        if not name:
+            continue
+        galaxy_id = available.get(name.casefold())
+        if galaxy_id is None:
+            print(f"Galaxy {name!r} was not found in the preprocessed sample.")
+        elif galaxy_id not in galaxy_ids:
+            galaxy_ids.append(galaxy_id)
+    if not galaxy_ids:
+        return
+
+    value = input(f"NFW upper scale radius in kpc [{DEFAULT_MAX_SCALE_RADIUS_KPC:g}]: ").strip()
+    try:
+        cap = float(value) if value else DEFAULT_MAX_SCALE_RADIUS_KPC
+        if not 0.01 < cap < float("inf"):
+            raise ValueError
+    except ValueError:
+        print("Enter a finite NFW upper scale radius greater than 0.01 kpc.")
+        return
+    suffix = "" if cap == DEFAULT_MAX_SCALE_RADIUS_KPC else f"_cap{cap:g}kpc"
+    halo_dir = OUTPUT_DIR / "halo_fits"
+    for galaxy_id in galaxy_ids:
+        try:
+            burkert = fit_halo(galaxy_id, df=data, model="burkert", show=False,
+                              output_path=halo_dir / f"{galaxy_id}_burkert_fit.png")
+            nfw = fit_halo(galaxy_id, df=data, model="nfw", show=False,
+                          max_scale_radius_kpc=cap,
+                          output_path=halo_dir / f"{galaxy_id}_nfw{suffix}_fit.png")
+        except (ValueError, RuntimeError) as error:
+            print(f"Could not complete halo fits for {galaxy_id}: {error}")
+            continue
+        plot_rotation_curve(galaxy_id, df=data, show=False,
+                            output_path=OUTPUT_DIR / "rotation_curves" / f"{galaxy_id}_rotation_curve.png")
+        plot_halo_comparison(galaxy_id, burkert, nfw, show=False,
+                             output_path=halo_dir / f"{galaxy_id}_halo_comparison{suffix}.png")
+
+
 def main():
-    print("  ===============SPARC RAR FULL PIPELINE STARTED=================")
+    print("SPARC analysis")
+    print("1. Radial acceleration relation (RAR)")
+    print("2. Rotation curves and halo comparisons for selected galaxies")
+    print("3. NFW radius-limit sweep (175-galaxy study)")
+    print("4. Stellar mass-to-light sweep")
+    print("5. Run all analyses")
+    print("0. Quit")
+    choice = input("Choose an analysis [5]: ").strip() or "5"
+    if choice == "0":
+        return
+    if choice not in {"1", "2", "3", "4", "5"}:
+        raise SystemExit("Choose a number from 0 to 5.")
 
-    ensure_output_dirs()
-    convert_rtf_if_needed()
+    prepare_input()
+    for folder in ("rotation_curves", "rar_plots", "halo_fits", "sweeps"):
+        (OUTPUT_DIR / folder).mkdir(parents=True, exist_ok=True)
 
-    df_preprocessed = preprocess_data()
-    df_filtered = filter_data()
-    available_galaxies = df_filtered['ID'].unique()
-    print(f">>> Available galaxies ({len(available_galaxies)}): {', '.join(available_galaxies)}")
-    user_input = input("Enter Galaxy IDs to process (comma-separated): ").strip()
-    galaxy_ids = [gid.strip() for gid in user_input.split(',') if gid.strip()]
-    print(">>> Plotting rotation curves for selected galaxies...")
-    for gid in galaxy_ids:
-        if gid in df_filtered['ID'].values:
-            plot_rotation_curve.plot_rotation_curve(
-                gid,
-                output_path=f"outputs/rotation_curves/{gid}_rotation_curve.png",
-            )
-        else:
-            print(f"Galaxy '{gid}' not found. Skipping.")
-    print(">>> Creating RAR plots for full dataset...")
-    visualize_rotation_rar.plot_rar(df_filtered, output_path="outputs/rar_plots/rar_full.png")
-    print(">>> Fitting Burkert halo profiles for selected galaxies...")
-    for gid in galaxy_ids:
-        if gid in df_filtered['ID'].values:
-            burkert_halo_fit.fit_burkert(gid)
-        else:
-            print(f"Galaxy '{gid}' not found. Skipping.")
+    if choice in {"1", "2", "5"}:
+        data = load_sparc_dataset(DATA_PATH)
+        data.to_csv(OUTPUT_DIR / "preprocessed_data.csv", index=False)
+        if choice in {"2", "5"}:
+            run_galaxy_workflow(data)
+        if choice in {"1", "5"}:
+            run_rar_workflow(data)
 
-    print(">>> Computing best-fit RAR acceleration scale g0...")
-    g0 = best_fit_calculation.fit_rar(df_filtered)
-    print(f"BEST-FIT g0 = {g0:.3e} m/s^2")
+    if choice in {"3", "5"}:
+        run_nfw_bound_sweep(output_path=OUTPUT_DIR / "sweeps" / "nfw_bound_sweep.csv")
+    if choice in {"4", "5"}:
+        run_mass_to_light_sweep(output_path=OUTPUT_DIR / "sweeps" / "mass_to_light_sweep.csv")
 
-    print(">>> Generating final summary report...")
-    rar_summary.generate_report(df=df_filtered, g0=g0)
-    print("Final report generated")
-
-    print(" =============== PIPELINE COMPLETE=======================")
- 
+    print(f"Results saved under {OUTPUT_DIR}")
 
 
 if __name__ == "__main__":

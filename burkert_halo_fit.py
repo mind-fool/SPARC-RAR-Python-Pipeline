@@ -21,6 +21,7 @@ HALO_MODELS = {
 def fit_halo(
     galaxy_id, df=None, output_path=None, *, model="burkert", plot=True,
     max_scale_radius_kpc=DEFAULT_MAX_SCALE_RADIUS_KPC,
+    show=True,
 ):
     """Fit baryons plus the selected halo to a SPARC rotation curve."""
     if model not in HALO_MODELS:
@@ -146,7 +147,8 @@ def fit_halo(
         output_path = f"{galaxy_id}_{model}{suffix}_fit.png"
 
     fig.savefig(output_path, dpi=300)
-    plt.show()
+    if show:
+        plt.show()
     plt.close(fig)
 
     return result
