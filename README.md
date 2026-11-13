@@ -49,8 +49,12 @@ the results under `outputs/`.
 
 The RAR plot, fitted `g0`, and RAR summary use the same relative-error cut.
 The halo fits use the preprocessed rotation curves before that cut.
-The radius-limit sweep for the 175-galaxy study is menu option **3** and
-writes `outputs/sweeps/nfw_bound_sweep.csv`.
+The two sweeps save the CSVs and manuscript outputs in `outputs/sweeps/`.
+
+* Option **3** saves `nfw_bound_sweep.csv`, `nfw_bound_sweep_table_rows.tex`,
+  and `ngc0100_nfw_bound_sweep.png`.
+* Option **4** saves `mass_to_light_sweep.csv` and `mass_to_light_sweep.png`.
+* Option **5** generates all five files in one run.
 
 ### Compare Burkert and NFW
 

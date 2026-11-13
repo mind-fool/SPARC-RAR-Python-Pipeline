@@ -11,6 +11,7 @@ from data_preprocess import (
     load_sparc_dataset,
 )
 from run_nfw_bound_sweep import fit_for_sweep
+from sweep_plots import plot_mass_to_light_sweep
 
 
 HALO_CAP_KPC = 100.0
@@ -76,25 +77,33 @@ def main(output_path=None):
 
     if output_path is None:
         output_path = project_dir / "mass_to_light_sweep.csv"
+    output_path = Path(output_path)
     results.to_csv(output_path, index=False)
 
     rankings = results.pivot(
         index="galaxy_id", columns="setting", values="lower_chi_squared_model"
     )
     baseline_rank = rankings["baseline"]
+    model_counts = {}
+    switch_counts = {}
     for setting, group in results.groupby("setting", sort=False):
         counts = group["lower_chi_squared_model"].value_counts()
-        swaps = (
-            (baseline_rank.eq("burkert") & rankings[setting].eq("nfw"))
-            | (baseline_rank.eq("nfw") & rankings[setting].eq("burkert"))
-        )
+        model_counts[setting] = counts
+        switch_counts[setting] = {
+            "burkert": (baseline_rank.eq("nfw") & rankings[setting].eq("burkert")).sum(),
+            "nfw": (baseline_rank.eq("burkert") & rankings[setting].eq("nfw")).sum(),
+        }
         print(
             f"{setting} | Burkert lower: {counts.get('burkert', 0)}"
             f" | NFW lower: {counts.get('nfw', 0)} | Near ties: {counts.get('near_tie', 0)}"
-            f" | Failed: {counts.get('fit_failed', 0)} | Model switches vs baseline: {swaps.sum()}"
+            f" | Failed: {counts.get('fit_failed', 0)}"
+            f" | Model switches vs baseline: {sum(switch_counts[setting].values())}"
         )
 
     print(f"Saved {len(results)} comparisons to {output_path}")
+    figure_path = output_path.with_suffix(".png")
+    plot_mass_to_light_sweep(STELLAR_SETTINGS, model_counts, switch_counts, figure_path)
+    print(f"Saved {figure_path}")
 
 
 if __name__ == "__main__":
