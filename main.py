@@ -81,7 +81,7 @@ def main():
             print(f"Galaxy '{gid}' not found. Skipping.")
 
     print(">>> Computing best-fit RAR acceleration scale g0...")
-    g0 = best_fit_calculation.fit_rar()
+    g0 = best_fit_calculation.fit_rar(df_filtered)
     print(f"BEST-FIT g0 = {g0:.3e} m/s^2")
 
     print(">>> Generating final summary report...")
