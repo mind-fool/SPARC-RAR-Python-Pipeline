@@ -85,7 +85,7 @@ def main():
     print(f"BEST-FIT g0 = {g0:.3e} m/s^2")
 
     print(">>> Generating final summary report...")
-    rar_summary.generate_report()
+    rar_summary.generate_report(df=df_filtered, g0=g0)
     print("Final report generated")
 
     print(" =============== PIPELINE COMPLETE=======================")
