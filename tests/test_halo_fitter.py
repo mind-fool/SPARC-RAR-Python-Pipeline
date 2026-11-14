@@ -162,5 +162,25 @@ class TestHaloFitter(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "initial_guess"):
                     fit_halo("signed", df=data, model="nfw", plot=False, initial_guess=start)
 
+    def test_custom_bounds_are_used_and_recorded(self):
+        data, known = self.signed_data(nfw_halo_velocity)
+        data["Vbar_squared_kms2"] = data["Vbar_squared_kms2"].abs()
+        data["Vobs_kms"] = np.sqrt(
+            data["Vbar_squared_kms2"] + nfw_halo_velocity(data["R_kpc"], *known)**2
+        )
+        with redirect_stdout(StringIO()):
+            result = fit_halo(
+                "signed", df=data, model="nfw", plot=False,
+                density_bounds=(1e-4, 1.0), min_scale_radius_kpc=0.1,
+                max_scale_radius_kpc=50.0,
+            )
+        self.assertEqual(result["density_lower_bound_msun_pc3"], 1e-4)
+        self.assertEqual(result["density_upper_bound_msun_pc3"], 1.0)
+        self.assertEqual(result["scale_radius_lower_bound_kpc"], 0.1)
+        self.assertEqual(result["scale_radius_upper_bound_kpc"], 50.0)
+        np.testing.assert_allclose(
+            [result["rho_s_msun_pc3"], result["r_s_kpc"]], known, rtol=1e-5,
+        )
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

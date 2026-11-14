@@ -10,6 +10,8 @@ from halo_models import burkert_halo_velocity, nfw_halo_velocity
 # Baseline upper bound on the fitted halo scale radius, in kpc.
 # Override it for a single run with --max-scale-radius-kpc.
 DEFAULT_MAX_SCALE_RADIUS_KPC = 100.0
+DEFAULT_MIN_SCALE_RADIUS_KPC = 0.01
+DEFAULT_DENSITY_BOUNDS = (1e-5, 10.0)
 
 # Each entry contains a velocity function, a plot label, and parameter names.
 HALO_MODELS = {
@@ -109,7 +111,8 @@ def _fit_signed_baryonic_curve(
 def fit_halo(
     galaxy_id, df=None, output_path=None, *, model="burkert", plot=True,
     max_scale_radius_kpc=DEFAULT_MAX_SCALE_RADIUS_KPC,
-    show=True, initial_guess=None,
+    min_scale_radius_kpc=DEFAULT_MIN_SCALE_RADIUS_KPC,
+    density_bounds=DEFAULT_DENSITY_BOUNDS, show=True, initial_guess=None,
 ):
     """Fit baryons plus the selected halo to a SPARC rotation curve.
 
@@ -155,15 +158,31 @@ def fit_halo(
         halo = halo_speed(radius_kpc, density_msun_pc3, scale_radius_kpc)
         return total_velocity_from_squared(baryonic_term, halo**2)
 
-    lower_bounds = (1e-5, 0.01)
-    min_scale_radius_kpc = lower_bounds[1]
+    try:
+        density_min, density_max = (float(value) for value in density_bounds)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(
+            "density_bounds must contain finite lower and upper density limits."
+        ) from exc
+    if (
+        not np.isfinite(density_min)
+        or not np.isfinite(density_max)
+        or density_min <= 0
+        or density_max <= density_min
+    ):
+        raise ValueError(
+            "density_bounds must satisfy 0 < lower < upper with finite values."
+        )
+    if not np.isfinite(min_scale_radius_kpc) or min_scale_radius_kpc <= 0:
+        raise ValueError("Minimum scale radius must be finite and positive.")
+    lower_bounds = (density_min, float(min_scale_radius_kpc))
 
     if not np.isfinite(max_scale_radius_kpc) or max_scale_radius_kpc <= min_scale_radius_kpc:
         raise ValueError(
             f"Maximum scale radius must be finite and above {min_scale_radius_kpc:g} kpc."
         )
 
-    upper_bounds = (10.0, max_scale_radius_kpc)
+    upper_bounds = (density_max, max_scale_radius_kpc)
     if initial_guess is None:
         radius_guess = min(5.0, (min_scale_radius_kpc + max_scale_radius_kpc) / 2.0)
         requested_initial = np.array([0.05, radius_guess])
@@ -258,6 +277,10 @@ def fit_halo(
         "function_evaluations": int(info["nfev"]),
         "fit_parameterization": fit_parameterization,
         "physical_boundary_hit": physical_boundary_hit,
+        "density_lower_bound_msun_pc3": density_min,
+        "density_upper_bound_msun_pc3": density_max,
+        "scale_radius_lower_bound_kpc": float(min_scale_radius_kpc),
+        "scale_radius_upper_bound_kpc": float(max_scale_radius_kpc),
         "baryonic_squared_kms2": baryonic_squared,
         "radius_kpc": radius,
         "observed_kms": observed,
@@ -327,6 +350,24 @@ if __name__ == "__main__":
         default=DEFAULT_MAX_SCALE_RADIUS_KPC,
         help="Upper fit limit for the halo scale radius in kpc (default: %(default)g)",
     )
+    parser.add_argument(
+        "--min-scale-radius-kpc",
+        type=float,
+        default=DEFAULT_MIN_SCALE_RADIUS_KPC,
+        help="Lower fit limit for the halo scale radius in kpc (default: %(default)g)",
+    )
+    parser.add_argument(
+        "--min-density-msun-pc3",
+        type=float,
+        default=DEFAULT_DENSITY_BOUNDS[0],
+        help="Lower fit limit for halo density (default: %(default)g)",
+    )
+    parser.add_argument(
+        "--max-density-msun-pc3",
+        type=float,
+        default=DEFAULT_DENSITY_BOUNDS[1],
+        help="Upper fit limit for halo density (default: %(default)g)",
+    )
     args = parser.parse_args()
 
     requested_id = (args.galaxy_id or input("Enter a SPARC galaxy ID: ")).strip()
@@ -346,6 +387,8 @@ if __name__ == "__main__":
             df=df,
             model=args.model,
             max_scale_radius_kpc=args.max_scale_radius_kpc,
+            min_scale_radius_kpc=args.min_scale_radius_kpc,
+            density_bounds=(args.min_density_msun_pc3, args.max_density_msun_pc3),
         )
     except (ValueError, RuntimeError) as error:
         parser.error(str(error))

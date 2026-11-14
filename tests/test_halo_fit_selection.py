@@ -48,6 +48,22 @@ class TestHaloFitSelection(unittest.TestCase):
         self.assertEqual(result["selection_agreement_count"], 9)
         self.assertEqual(result["selection_selected_trial"], 1)
 
+    def test_custom_bounds_are_forwarded_to_starts_and_trials(self):
+        candidate = self.fit(5.0, 2.0)
+        with patch("halo_fit_selection.starting_points", return_value=[(0.2, 4.0)]) as starts:
+            with patch("halo_fit_selection.fit_halo", return_value=candidate) as fitter:
+                fit_best_halo(
+                    "example", df=pd.DataFrame(), model="nfw",
+                    min_scale_radius_kpc=0.1, max_scale_radius_kpc=50.0,
+                    density_bounds=(1e-4, 1.0),
+                )
+        starts.assert_called_once_with(
+            50.0, min_scale_radius_kpc=0.1, density_bounds=(1e-4, 1.0),
+        )
+        self.assertEqual(fitter.call_args.kwargs["min_scale_radius_kpc"], 0.1)
+        self.assertEqual(fitter.call_args.kwargs["max_scale_radius_kpc"], 50.0)
+        self.assertEqual(fitter.call_args.kwargs["density_bounds"], (1e-4, 1.0))
+
     def test_real_synthetic_data_recovers_parameters(self):
         radius = np.geomspace(.1, 30., 25)
         baryonic = 300. * radius / (radius + 3.)

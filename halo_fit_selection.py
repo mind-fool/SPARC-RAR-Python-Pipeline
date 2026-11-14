@@ -13,7 +13,8 @@ from optimizer_starts import CHI2_ATOL, CHI2_RTOL, starting_points
 
 def fit_best_halo(
     galaxy_id, df=None, output_path=None, *, model="burkert",
-    max_scale_radius_kpc=100.0, plot=False, show=True, report=False,
+    max_scale_radius_kpc=100.0, min_scale_radius_kpc=0.01,
+    density_bounds=(1e-5, 10.0), plot=False, show=True, report=False,
 ):
     """Return the best found fit and diagnostics, with optional reporting and plotting.
 
@@ -22,7 +23,11 @@ def fit_best_halo(
     """
     if model not in ("burkert", "nfw"):
         raise ValueError(f"Unknown halo model: {model!r}")
-    starts = starting_points(max_scale_radius_kpc)
+    starts = starting_points(
+        max_scale_radius_kpc,
+        min_scale_radius_kpc=min_scale_radius_kpc,
+        density_bounds=density_bounds,
+    )
     if df is None:
         df = load_sparc_dataset()
     best = None
@@ -40,7 +45,9 @@ def fit_best_halo(
                 with redirect_stdout(StringIO()):
                     fit = fit_halo(
                         galaxy_id, df=df, model=model, plot=False,
-                        max_scale_radius_kpc=max_scale_radius_kpc, initial_guess=start,
+                        max_scale_radius_kpc=max_scale_radius_kpc,
+                        min_scale_radius_kpc=min_scale_radius_kpc,
+                        density_bounds=density_bounds, initial_guess=start,
                     )
                 if fit["optimizer_status"] not in (1, 2, 3, 4) or not np.isfinite(fit["chi_squared"]):
                     raise ValueError("Optimizer did not return a successful finite fit.")
