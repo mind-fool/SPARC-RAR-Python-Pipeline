@@ -43,7 +43,8 @@ The rotation curves and baryonic components come from the [SPARC Newtonian mass-
 
 Run `python3 main.py` from the project folder, or open `main.py` and press Run.
 The menu offers the RAR analysis, selected-galaxy rotation curves and halo fits,
-the NFW radius-limit sweep, and the stellar mass-to-light sweep. Choose **5**
+the NFW radius-limit sweep, the stellar mass-to-light sweep, and an optimizer
+starting-point check. Choose **5**
 to run all analyses. The pipeline prepares the input CSV if needed and saves
 the results under `outputs/`.
 
@@ -54,7 +55,8 @@ The two sweeps save the CSVs and manuscript outputs in `outputs/sweeps/`.
 * Option **3** saves `nfw_bound_sweep.csv`, `nfw_bound_sweep_table_rows.tex`,
   and `ngc0100_nfw_bound_sweep.png`.
 * Option **4** saves `mass_to_light_sweep.csv` and `mass_to_light_sweep.png`.
-* Option **5** generates all five files in one run.
+* Option **5** generates these five files and runs the optimizer check.
+* Option **6** runs only the optimizer check, leaving existing sweep outputs untouched.
 
 ### Compare Burkert and NFW
 
@@ -83,6 +85,43 @@ python3 burkert_halo_fit.py NGC0100 --model nfw --max-scale-radius-kpc 300
 ```
 
 Running `compare_halo_fits.py` from the editor prompts for a galaxy ID and uses the default limit for both fits. Run `python3 burkert_halo_fit.py --help` to see the individual fitter's options.
+
+### Check optimizer starting points
+
+Run `main.py` and choose **6**. Enter galaxy IDs separated by commas, or press
+Enter to check all galaxies. For a short first run, enter `NGC0100,UGC01281,NGC6195`.
+Option **5** also runs this check for all galaxies after the other analyses.
+
+Each fit is repeated from ten starting points: the existing default and nine
+combinations of density and radius. The nine starts use the 10%, 50%, and 90%
+positions within each logarithmic parameter interval. The density interval is
+`1e-5` to `10 Msun/pc^3`; the radius interval is `0.01 kpc` to the selected ceiling.
+The check covers Burkert at 100 kpc and NFW at 100, 300, and 1,000 kpc with the
+baseline stellar ratios, plus both models at 100 kpc for the two other stellar
+settings. This gives 14,000 trial fits for 175 galaxies and may take several minutes.
+
+Each run creates a new dated folder under `outputs/validation/` containing:
+
+* `optimizer_trials.csv`: every requested and effective starting point, fitted
+  parameters, chi-squared, optimizer status, boundary flags, warnings, and failures.
+* `optimizer_summary.csv`: the default and best-found fit for each case, trial
+  counts, agreement counts, and the parameter ranges among agreeing fits.
+* `optimizer_comparisons.csv`: the default and best-found Burkert/NFW rankings.
+* `manifest.json`: the input and source hashes, code revision, software versions,
+  starting points, settings, tolerances, and whether the run completed.
+
+Successful trials agree with the best-found fit when their total chi-squared
+values differ by no more than `1e-6 + 1e-6 * abs(best_chi_squared)`. This is a
+numerical tolerance, not a statistical significance threshold. Model ranking
+uses the same reduced-chi-squared near-tie rule as the existing sweeps.
+A failed default fit is recorded separately from an improved fit. A run interrupted
+between configurations can leave partial CSVs; its manifest will still say `running`.
+
+Signed baryonic contributions can require moving a starting point into the region
+where total squared speed is positive. Both the requested and effective starts are
+saved, and the summary counts distinct effective starts among successful trials.
+Agreement across these starts does not prove that the global minimum was found.
+The check does not automatically replace the original sweep results.
 
 ### Tests
 

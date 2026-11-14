@@ -13,6 +13,7 @@ from report_converter import convert_rtf_to_text, convert_text_to_csv
 from run_mass_to_light_sweep import main as run_mass_to_light_sweep
 from run_nfw_bound_sweep import main as run_nfw_bound_sweep
 from visualize_rotation_rar import plot_rar
+from run_optimizer_validation import run_validation
 
 
 PROJECT_DIR = Path(__file__).resolve().parent
@@ -91,12 +92,13 @@ def main():
     print("3. NFW radius-limit sweep (175-galaxy study)")
     print("4. Stellar mass-to-light sweep")
     print("5. Run all analyses")
+    print("6. Check optimizer starting-point sensitivity")
     print("0. Quit")
     choice = input("Choose an analysis [5]: ").strip() or "5"
     if choice == "0":
         return
-    if choice not in {"1", "2", "3", "4", "5"}:
-        raise SystemExit("Choose a number from 0 to 5.")
+    if choice not in {"1", "2", "3", "4", "5", "6"}:
+        raise SystemExit("Choose a number from 0 to 6.")
 
     prepare_input()
     for folder in ("rotation_curves", "rar_plots", "halo_fits", "sweeps"):
@@ -114,6 +116,14 @@ def main():
         run_nfw_bound_sweep(output_path=OUTPUT_DIR / "sweeps" / "nfw_bound_sweep.csv")
     if choice in {"4", "5"}:
         run_mass_to_light_sweep(output_path=OUTPUT_DIR / "sweeps" / "mass_to_light_sweep.csv")
+
+    if choice in {"5", "6"}:
+        selected = None
+        if choice == "6":
+            requested = input("Galaxy IDs separated by commas [all galaxies]: ").strip()
+            selected = requested.split(",") if requested else None
+        run_validation(output_dir=OUTPUT_DIR / "validation", galaxy_ids=selected,
+                       data_path=DATA_PATH)
 
     print(f"Results saved under {OUTPUT_DIR}")
 
