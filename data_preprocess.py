@@ -79,7 +79,14 @@ def load_sparc_dataset(
     df['eV_ms'] = df['eV_kms'] * km_to_m
     df['g_obs_err'] = 2 * df['Vobs_ms'] * df['eV_ms'] / df['R_m']
 
-    df = df.replace([np.inf, -np.inf], np.nan).dropna()
+    df = df.replace([np.inf, -np.inf], np.nan)
+
+    # Do not remove measurements solely because baryonic-only speed is undefined.
+    required_columns = [
+        column for column in df.columns
+        if column not in ("Vbar_kms", "Vbar_ms")
+    ]
+    df = df.dropna(subset=required_columns)
 
     return df
 
