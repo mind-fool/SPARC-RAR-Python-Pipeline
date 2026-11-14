@@ -33,7 +33,7 @@ def total_velocity_from_squared(baryonic_squared, halo_squared):
 
 def _fit_signed_baryonic_curve(
     total_speed, halo_speed, radius, observed, error, baryonic_squared,
-    lower_bounds, upper_bounds, radius_guess,
+    lower_bounds, upper_bounds, density_guess, radius_guess,
 ):
     """Use bounded curve_fit while keeping total squared speeds positive.
 
@@ -71,7 +71,7 @@ def _fit_signed_baryonic_curve(
 
     radius_guess = min(max(radius_guess, radius_min), radius_max)
     floor_at_start = density_floor(radius_guess)
-    density_guess = max(0.05, floor_at_start + 0.01 * (density_max - floor_at_start))
+    density_guess = max(density_guess, floor_at_start + 0.01 * (density_max - floor_at_start))
     fraction_guess = (density_guess - floor_at_start) / (density_max - floor_at_start)
 
     def feasible_speed(radius_kpc, density_fraction, scale_radius):
@@ -79,10 +79,11 @@ def _fit_signed_baryonic_curve(
         density = floor + density_fraction * (density_max - floor)
         return total_speed(radius_kpc, density, scale_radius)
 
-    transformed, transformed_covariance = curve_fit(
+    transformed, transformed_covariance, info, message, status = curve_fit(
         feasible_speed, radius, observed, sigma=error, absolute_sigma=True,
         p0=(fraction_guess, radius_guess),
         bounds=((0.0, radius_min), (1.0, radius_max)), maxfev=20_000,
+        full_output=True,
     )
     fraction, scale_radius = transformed
     floor = density_floor(scale_radius)
@@ -99,15 +100,24 @@ def _fit_signed_baryonic_curve(
         [0.0, 1.0],
     ])
     covariance = jacobian @ transformed_covariance @ jacobian.T
-    return np.array([density, scale_radius]), covariance
+    return (
+        np.array([density, scale_radius]), covariance,
+        np.array([density_guess, radius_guess]), info, message, status,
+    )
 
 
 def fit_halo(
     galaxy_id, df=None, output_path=None, *, model="burkert", plot=True,
     max_scale_radius_kpc=DEFAULT_MAX_SCALE_RADIUS_KPC,
-    show=True,
+    show=True, initial_guess=None,
 ):
-    """Fit baryons plus the selected halo to a SPARC rotation curve."""
+    """Fit baryons plus the selected halo to a SPARC rotation curve.
+
+    initial_guess is (density in Msun/pc^3, scale radius in kpc).
+    None retains the original default. Signed baryonic data may require
+    moving the requested start into the positive-total-speed region;
+    requested and effective starting points are recorded in the result.
+    """
     if model not in HALO_MODELS:
         raise ValueError(f"Unknown halo model: {model!r}")
 
@@ -154,25 +164,39 @@ def fit_halo(
         )
 
     upper_bounds = (10.0, max_scale_radius_kpc)
-    radius_guess = min(5.0, (min_scale_radius_kpc + max_scale_radius_kpc) / 2.0)
-    
+    if initial_guess is None:
+        radius_guess = min(5.0, (min_scale_radius_kpc + max_scale_radius_kpc) / 2.0)
+        requested_initial = np.array([0.05, radius_guess])
+    else:
+        try:
+            requested_initial = np.asarray(initial_guess, dtype=float)
+        except (TypeError, ValueError) as exc:
+            raise ValueError("initial_guess must contain a finite density and scale radius.") from exc
+        if requested_initial.shape != (2,) or not np.all(np.isfinite(requested_initial)):
+            raise ValueError("initial_guess must contain a finite density and scale radius.")
+        if np.any(requested_initial < lower_bounds) or np.any(requested_initial > upper_bounds):
+            raise ValueError("initial_guess must lie within the halo parameter bounds.")
+    density_guess, radius_guess = requested_initial
+
     if np.any(baryonic_squared < 0):
-        parameters, covariance = _fit_signed_baryonic_curve(
+        parameters, covariance, effective_initial, info, message, status = _fit_signed_baryonic_curve(
             total_speed, halo_speed, radius, observed, error,
-            baryonic_squared, lower_bounds, upper_bounds, radius_guess,
+            baryonic_squared, lower_bounds, upper_bounds, density_guess, radius_guess,
         )
         fit_parameterization = "feasible_density_fraction"
     else:
-        parameters, covariance = curve_fit(
+        parameters, covariance, info, message, status = curve_fit(
             total_speed,
             radius,
             observed,
             sigma=error,
             absolute_sigma=True,
-            p0=(0.05, radius_guess),
+            p0=requested_initial,
             bounds=(lower_bounds, upper_bounds),
             maxfev=20_000,
+            full_output=True,
         )
+        effective_initial = requested_initial.copy()
         fit_parameterization = "density"
     density, scale_radius = parameters
 
@@ -189,7 +213,8 @@ def fit_halo(
     else:
         density_error, scale_radius_error = np.sqrt(np.diag(covariance))
     residuals = observed - total
-    reduced_chi_squared = np.sum((residuals / error) ** 2) / (radius.size - 2)
+    chi_squared = float(np.sum((residuals / error) ** 2))
+    reduced_chi_squared = chi_squared / (radius.size - 2)
 
     print(f"{label} fit for {galaxy_id}")
     print(f"{density_name} = {density:.6g} ± {density_error:.2g} Msun/pc^3")
@@ -221,7 +246,16 @@ def fit_halo(
         f"{density_name}_error_msun_pc3": density_error,
         f"{radius_name}_kpc": scale_radius,
         f"{radius_name}_error_kpc": scale_radius_error,
+        "chi_squared": chi_squared,
         "reduced_chi_squared": reduced_chi_squared,
+        "requested_initial_density_msun_pc3": float(requested_initial[0]),
+        "requested_initial_radius_kpc": float(requested_initial[1]),
+        "effective_initial_density_msun_pc3": float(effective_initial[0]),
+        "effective_initial_radius_kpc": float(effective_initial[1]),
+        "initial_guess_adjusted": bool(np.any(effective_initial != requested_initial)),
+        "optimizer_status": int(status),
+        "optimizer_message": message,
+        "function_evaluations": int(info["nfev"]),
         "fit_parameterization": fit_parameterization,
         "physical_boundary_hit": physical_boundary_hit,
         "baryonic_squared_kms2": baryonic_squared,
