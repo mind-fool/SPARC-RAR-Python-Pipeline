@@ -59,11 +59,19 @@ def load_sparc_dataset(
     df['Vbul_ms'] = df['Vbul_kms'] * km_to_m
     df['R_m'] = df['R_kpc'] * kpc_to_m
 
-    vbar_squared = (
-        signed_square(df["Vgas_kms"])+ disk_mass_to_light * signed_square(df["Vdisk_kms"]) + bulge_mass_to_light * signed_square(df["Vbul_kms"]))
+    # Signed baryonic contribution to squared speed, in (km/s)^2.
+    df["Vbar_squared_kms2"] = (
+        signed_square(df["Vgas_kms"])
+        + disk_mass_to_light * signed_square(df["Vdisk_kms"])
+        + bulge_mass_to_light * signed_square(df["Vbul_kms"])
+    )
 
-    df['Vbar_kms'] = np.sqrt(vbar_squared.where(vbar_squared > 0))
-    df['Vbar_ms'] = df['Vbar_kms'] * km_to_m
+    # A separate baryonic speed exists only for nonnegative contributions.
+    # Keep negative contributions in Vbar_squared_kms2 for the halo fitter.
+    df["Vbar_kms"] = np.sqrt(
+        df["Vbar_squared_kms2"].where(df["Vbar_squared_kms2"] >= 0)
+    )
+    df["Vbar_ms"] = df["Vbar_kms"] * km_to_m
 
     df['g_obs'] = df['Vobs_ms']**2 / df['R_m']
     df['g_bar'] = df['Vbar_ms']**2 / df['R_m']
