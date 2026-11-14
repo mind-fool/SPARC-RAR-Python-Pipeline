@@ -31,7 +31,8 @@ def _fit_with_curve(galaxy_id, dataset, model, cap_kpc):
     density_name, radius_name = ("rho0", "r0") if model == "burkert" else ("rho_s", "r_s")
     fields = dict.fromkeys(
         ("n_points", "density_msun_pc3", "scale_radius_kpc", "reduced_chi_squared",
-         "density_bound_hit", "scale_radius_bound_hit", "fit_error"),
+         "density_bound_hit", "scale_radius_bound_hit",
+         "fit_parameterization", "physical_boundary_hit", "fit_error"),
         "",
     )
 
@@ -54,6 +55,8 @@ def _fit_with_curve(galaxy_id, dataset, model, cap_kpc):
             reduced_chi_squared=fit["reduced_chi_squared"],
             density_bound_hit=fit["bound_hits"].get(density_name, ""),
             scale_radius_bound_hit=fit["bound_hits"].get(radius_name, ""),
+            fit_parameterization=fit["fit_parameterization"],
+            physical_boundary_hit=fit["physical_boundary_hit"],
         )
 
     return {f"{model}_{name}": value for name, value in fields.items()}, fit
