@@ -74,7 +74,7 @@ def load_sparc_dataset(
     df["Vbar_ms"] = df["Vbar_kms"] * km_to_m
 
     df['g_obs'] = df['Vobs_ms']**2 / df['R_m']
-    df['g_bar'] = df['Vbar_ms']**2 / df['R_m']
+    df["g_bar"] = df["Vbar_squared_kms2"] * km_to_m**2 / df["R_m"]
 
     df['eV_ms'] = df['eV_kms'] * km_to_m
     df['g_obs_err'] = 2 * df['Vobs_ms'] * df['eV_ms'] / df['R_m']
