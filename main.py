@@ -13,6 +13,7 @@ from rar_summary import generate_report
 from report_converter import convert_rtf_to_text, convert_text_to_csv
 from run_mass_to_light_sweep import main as run_mass_to_light_sweep
 from run_nfw_bound_sweep import main as run_nfw_bound_sweep
+from run_boundary_sensitivity import run_boundary_sensitivity
 from visualize_rotation_rar import plot_rar
 from run_optimizer_validation import run_validation
 
@@ -94,12 +95,13 @@ def main():
     print("4. Stellar mass-to-light sweep")
     print("5. Run all analyses")
     print("6. Check optimizer starting-point sensitivity")
+    print("7. Test halo-fit boundary sensitivity (full 175-galaxy study)")
     print("0. Quit")
     choice = input("Choose an analysis [5]: ").strip() or "5"
     if choice == "0":
         return
-    if choice not in {"1", "2", "3", "4", "5", "6"}:
-        raise SystemExit("Choose a number from 0 to 6.")
+    if choice not in {"1", "2", "3", "4", "5", "6", "7"}:
+        raise SystemExit("Choose a number from 0 to 7.")
 
     prepare_input()
     for folder in ("rotation_curves", "rar_plots", "halo_fits", "sweeps"):
@@ -125,6 +127,11 @@ def main():
             selected = requested.split(",") if requested else None
         run_validation(output_dir=OUTPUT_DIR / "validation", galaxy_ids=selected,
                        data_path=DATA_PATH)
+
+    if choice == "7":
+        run_boundary_sensitivity(
+            output_dir=OUTPUT_DIR / "boundary_sensitivity", data_path=DATA_PATH,
+        )
 
     print(f"Results saved under {OUTPUT_DIR}")
 

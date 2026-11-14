@@ -57,6 +57,8 @@ The two sweeps save the CSVs and manuscript outputs in `outputs/sweeps/`.
 * Option **4** saves `mass_to_light_sweep.csv` and `mass_to_light_sweep.png`.
 * Option **5** generates these five files and runs the optimizer check.
 * Option **6** runs only the optimizer check, leaving existing sweep outputs untouched.
+* Option **7** runs the separate full-sample halo-bound sensitivity study. It is not
+  included in option **5**, because it deliberately performs many more fits.
 
 ### Compare Burkert and NFW
 
@@ -141,6 +143,25 @@ where total squared speed is positive. Both the requested and effective starts a
 saved, and the summary counts distinct effective starts among successful trials.
 Agreement across these starts does not prove that the global minimum was found.
 The check does not automatically replace the original sweep results.
+
+### Test halo-fit boundaries
+
+Run `main.py` and choose **7** to test the numerical boundaries without changing
+the original paper sweep. The study changes one bound family at a time, while the
+other limits retain their baseline values:
+
+* scale-radius ceilings of 10, 30, 100, 300, 1,000, 3,000, and 10,000 kpc;
+* density floors of `1e-8`, `1e-7`, `1e-6`, `1e-5`, and `1e-4 Msun/pc^3`;
+* scale-radius floors of 0.001, 0.01, and 0.1 kpc.
+
+Duplicate baseline configurations are run once, giving 13 configurations in total.
+Both halo models use the same bound configuration in each matched comparison.
+The study uses the same ten-start selection as the rest of the pipeline. It saves
+a dated folder under `outputs/boundary_sensitivity/` containing every fit,
+Burkert--NFW comparisons, configuration summaries, and a manifest with the source
+revision, input hash, software versions, and exact configurations. This is a
+numerical-sensitivity study: it does not establish a global optimum or identify a
+physically preferred model on its own.
 
 ### Tests
 

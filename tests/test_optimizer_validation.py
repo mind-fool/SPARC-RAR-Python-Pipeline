@@ -123,6 +123,25 @@ class TestOptimizerValidation(unittest.TestCase):
             radius_sweep.assert_not_called()
             stellar_sweep.assert_not_called()
 
+    def test_main_option_seven_runs_only_boundary_sensitivity_study(self):
+        with TemporaryDirectory() as directory:
+            with patch.object(pipeline_main, "OUTPUT_DIR", Path(directory)), \
+                 patch.object(pipeline_main, "prepare_input"), \
+                 patch.object(pipeline_main, "run_boundary_sensitivity") as boundary_study, \
+                 patch.object(pipeline_main, "run_nfw_bound_sweep") as radius_sweep, \
+                 patch.object(pipeline_main, "run_mass_to_light_sweep") as stellar_sweep, \
+                 patch.object(pipeline_main, "run_validation") as validation, \
+                 patch("builtins.input", return_value="7"), \
+                 redirect_stdout(StringIO()):
+                pipeline_main.main()
+            boundary_study.assert_called_once_with(
+                output_dir=Path(directory) / "boundary_sensitivity",
+                data_path=pipeline_main.DATA_PATH,
+            )
+            radius_sweep.assert_not_called()
+            stellar_sweep.assert_not_called()
+            validation.assert_not_called()
+
 
 
     def test_main_option_five_includes_full_validation(self):
