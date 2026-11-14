@@ -4,7 +4,6 @@ from contextlib import redirect_stdout
 from datetime import datetime, timezone
 from hashlib import sha256
 from io import StringIO
-from itertools import product
 import json
 from pathlib import Path
 import subprocess
@@ -20,22 +19,9 @@ from data_preprocess import load_sparc_dataset
 from run_mass_to_light_sweep import STELLAR_SETTINGS
 from run_nfw_bound_sweep import BURKERT_CAP_KPC, NFW_CAPS_KPC
 
-# Numerical agreement in total chi-squared, not a significance threshold.
-CHI2_ATOL = 1e-6
-CHI2_RTOL = 1e-6
+from optimizer_starts import CHI2_ATOL, CHI2_RTOL, starting_points
+
 PROJECT_DIR = Path(__file__).resolve().parent
-
-
-def starting_points(cap_kpc):
-    """Original start plus a 3-by-3 logarithmic grid inside the fit bounds."""
-    if not np.isfinite(cap_kpc) or cap_kpc <= 0.01:
-        raise ValueError("Radius ceiling must be finite and greater than 0.01 kpc.")
-    default = (0.05, min(5.0, (0.01 + cap_kpc) / 2.0))
-    # Interior points at 10%, 50%, and 90% of each log-parameter interval.
-    fractions = np.array([0.1, 0.5, 0.9])
-    densities = np.exp(np.log(1e-5) + fractions * np.log(10.0 / 1e-5))
-    radii = np.exp(np.log(0.01) + fractions * np.log(cap_kpc / 0.01))
-    return [default] + [(float(d), float(r)) for d, r in product(densities, radii)]
 
 
 def validate_fit(galaxy_id, dataset, model, cap_kpc, starts=None):
@@ -223,7 +209,8 @@ def run_validation(output_dir=None, galaxy_ids=None, *, data_path=None):
             name: sha256((PROJECT_DIR / name).read_bytes()).hexdigest()
             for name in ("burkert_halo_fit.py", "halo_models.py", "data_preprocess.py",
                          "run_optimizer_validation.py", "run_mass_to_light_sweep.py",
-                         "run_nfw_bound_sweep.py", "main.py") if (PROJECT_DIR / name).is_file()
+                         "run_nfw_bound_sweep.py", "main.py", "optimizer_starts.py",
+                         "halo_fit_selection.py") if (PROJECT_DIR / name).is_file()
         },
         "interpretation": "Best among the tested starts; agreement does not prove a global minimum.",
     }
