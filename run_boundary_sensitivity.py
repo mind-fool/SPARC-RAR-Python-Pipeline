@@ -29,6 +29,7 @@ BASELINE_MIN_SCALE_RADIUS_KPC = 0.01
 BASELINE_MAX_SCALE_RADIUS_KPC = 100.0
 RADIUS_CEILINGS_KPC = (10.0, 30.0, 100.0, 300.0, 1000.0, 3000.0, 10000.0)
 DENSITY_FLOORS_MSUN_PC3 = (1e-8, 1e-7, 1e-6, 1e-5, 1e-4)
+DENSITY_CEILINGS_MSUN_PC3 = (10.0, 30.0, 100.0, 300.0, 1000.0)
 RADIUS_FLOORS_KPC = (0.001, 0.01, 0.1)
 
 
@@ -53,6 +54,14 @@ def boundary_configurations():
             "family": "density_floor",
             "label": f"density_floor_{floor:.0e}_msun_pc3",
             "density_bounds": (floor, BASELINE_DENSITY_BOUNDS[1]),
+            "min_scale_radius_kpc": BASELINE_MIN_SCALE_RADIUS_KPC,
+            "max_scale_radius_kpc": BASELINE_MAX_SCALE_RADIUS_KPC,
+        })
+    for ceiling in DENSITY_CEILINGS_MSUN_PC3:
+        configs.append({
+            "family": "density_ceiling",
+            "label": f"density_ceiling_{ceiling:g}_msun_pc3",
+            "density_bounds": (BASELINE_DENSITY_BOUNDS[0], ceiling),
             "min_scale_radius_kpc": BASELINE_MIN_SCALE_RADIUS_KPC,
             "max_scale_radius_kpc": BASELINE_MAX_SCALE_RADIUS_KPC,
         })

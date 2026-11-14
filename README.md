@@ -152,9 +152,10 @@ other limits retain their baseline values:
 
 * scale-radius ceilings of 10, 30, 100, 300, 1,000, 3,000, and 10,000 kpc;
 * density floors of `1e-8`, `1e-7`, `1e-6`, `1e-5`, and `1e-4 Msun/pc^3`;
+* density ceilings of 10, 30, 100, 300, and `1e3 Msun/pc^3`;
 * scale-radius floors of 0.001, 0.01, and 0.1 kpc.
 
-Duplicate baseline configurations are run once, giving 13 configurations in total.
+Duplicate baseline configurations are run once, giving 17 configurations in total.
 Both halo models use the same bound configuration in each matched comparison.
 The study uses the same ten-start selection as the rest of the pipeline. It saves
 a dated folder under `outputs/boundary_sensitivity/` containing every fit,

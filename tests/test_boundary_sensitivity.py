@@ -16,7 +16,7 @@ from run_boundary_sensitivity import (
 class TestBoundarySensitivity(unittest.TestCase):
     def test_configurations_change_only_one_bound_family_at_a_time(self):
         configurations = boundary_configurations()
-        self.assertEqual(len(configurations), 13)
+        self.assertEqual(len(configurations), 17)
         labels = [config["label"] for config in configurations]
         self.assertEqual(len(labels), len(set(labels)))
         for config in configurations:
@@ -35,6 +35,13 @@ class TestBoundarySensitivity(unittest.TestCase):
                     )
                 elif config["family"] == "radius_floor":
                     self.assertEqual(config["density_bounds"], BASELINE_DENSITY_BOUNDS)
+                    self.assertEqual(
+                        config["max_scale_radius_kpc"], BASELINE_MAX_SCALE_RADIUS_KPC,
+                    )
+                elif config["family"] == "density_ceiling":
+                    self.assertEqual(
+                        config["min_scale_radius_kpc"], BASELINE_MIN_SCALE_RADIUS_KPC,
+                    )
                     self.assertEqual(
                         config["max_scale_radius_kpc"], BASELINE_MAX_SCALE_RADIUS_KPC,
                     )
