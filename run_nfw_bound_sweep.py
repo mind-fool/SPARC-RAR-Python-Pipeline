@@ -7,7 +7,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from burkert_halo_fit import fit_halo
+from halo_fit_selection import fit_best_halo
 from data_preprocess import (
     BULGE_MASS_TO_LIGHT,
     DISK_MASS_TO_LIGHT,
@@ -32,13 +32,15 @@ def _fit_with_curve(galaxy_id, dataset, model, cap_kpc):
     fields = dict.fromkeys(
         ("n_points", "density_msun_pc3", "scale_radius_kpc", "reduced_chi_squared",
          "density_bound_hit", "scale_radius_bound_hit",
-         "fit_parameterization", "physical_boundary_hit", "fit_error"),
+         "fit_parameterization", "physical_boundary_hit", "fit_strategy",
+         "selection_trial_count", "selection_success_count", "selection_failed_count",
+         "selection_selected_trial", "selection_agreement_count", "selection_trials_json", "fit_error"),
         "",
     )
 
     try:
         with redirect_stdout(StringIO()):
-            fit = fit_halo(
+            fit = fit_best_halo(
                 galaxy_id, df=dataset, model=model, plot=False,
                 max_scale_radius_kpc=cap_kpc,
             )
@@ -57,6 +59,15 @@ def _fit_with_curve(galaxy_id, dataset, model, cap_kpc):
             scale_radius_bound_hit=fit["bound_hits"].get(radius_name, ""),
             fit_parameterization=fit["fit_parameterization"],
             physical_boundary_hit=fit["physical_boundary_hit"],
+            fit_strategy=fit["fit_strategy"],
+            selection_trial_count=fit["selection_trial_count"],
+            selection_success_count=fit["selection_success_count"],
+            selection_failed_count=fit["selection_failed_count"],
+            selection_selected_trial=fit["selection_selected_trial"],
+            selection_agreement_count=fit["selection_agreement_count"],
+            selection_trials_json=pd.DataFrame(fit["selection_trial_results"]).to_json(
+                orient="records", double_precision=15,
+            ),
         )
 
     return {f"{model}_{name}": value for name, value in fields.items()}, fit
@@ -73,7 +84,7 @@ def main(output_path=None):
     if not galaxy_ids:
         raise SystemExit("No galaxies are available after SPARC preprocessing.")
 
-    print(f"Fitting {len(galaxy_ids)} SPARC galaxies. This may take a moment.", flush=True)
+    print(f"Fitting {len(galaxy_ids)} SPARC galaxies using multiple starts. This may take several minutes.", flush=True)
     rows = []
     example_fits = {}
     for galaxy_id in galaxy_ids:

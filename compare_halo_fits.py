@@ -2,7 +2,7 @@ import argparse
 
 import matplotlib.pyplot as plt
 
-from burkert_halo_fit import fit_halo
+from halo_fit_selection import fit_best_halo
 from data_preprocess import load_sparc_dataset
 
 
@@ -23,8 +23,8 @@ def main():
     if galaxy_id is None:
         parser.error(f"Galaxy {requested_id!r} was not found in SPARC data.")
 
-    burkert = fit_halo(galaxy_id, df=df, model="burkert", plot=False)
-    nfw = fit_halo(galaxy_id, df=df, model="nfw", plot=False)
+    burkert = fit_best_halo(galaxy_id, df=df, model="burkert", plot=False, report=True)
+    nfw = fit_best_halo(galaxy_id, df=df, model="nfw", plot=False, report=True)
     plot_halo_comparison(galaxy_id, burkert, nfw)
 
 

@@ -86,6 +86,25 @@ python3 burkert_halo_fit.py NGC0100 --model nfw --max-scale-radius-kpc 300
 
 Running `compare_halo_fits.py` from the editor prompts for a galaxy ID and uses the default limit for both fits. Run `python3 burkert_halo_fit.py --help` to see the individual fitter's options.
 
+### Selecting halo fits
+
+Galaxy plots and both halo sweeps select the lowest total chi-squared among the
+ten starting-point trials described below. The same selected fit supplies the
+reported parameters, model curve, residuals, and comparison score. Plots do not
+rerun the optimizer. Individual halo scripts use this selection too.
+
+The sweep CSVs record the selection strategy, the chosen trial, successful and
+failed trial counts, and the number agreeing with the lowest score. The
+`burkert_selection_trials_json` and `nfw_selection_trials_json` columns retain
+all trial diagnostics as JSON records, including failures and warnings.
+The existing bound flags describe the selected trial; they do not establish
+that a parameter is physically well constrained.
+
+The validation workflow still compares the original single-start result with
+the best among the tested starts. Option **5** runs both the production sweeps
+and this separate validation, so it repeats fits and takes longer. Use options
+**3** or **4** to regenerate just the corresponding sweep.
+
 ### Check optimizer starting points
 
 Run `main.py` and choose **6**. Enter galaxy IDs separated by commas, or press

@@ -1,3 +1,4 @@
+import json
 import sys
 import unittest
 from io import StringIO
@@ -27,8 +28,14 @@ class TestSweepResults(unittest.TestCase):
                         "bound_hits": {},
                         "fit_parameterization": "feasible_density_fraction",
                         "physical_boundary_hit": flagged,
+                        "fit_strategy": "best_of_tested_starts",
+                        "selection_trial_count": 10, "selection_success_count": 9,
+                        "selection_failed_count": 1, "selection_selected_trial": 3,
+                        "selection_agreement_count": 7,
+                        "selection_trial_results": [{"trial": 2, "success": False,
+                                                     "fit_error": "did not converge"}],
                     }
-                    with patch("run_nfw_bound_sweep.fit_halo", return_value=fit):
+                    with patch("run_nfw_bound_sweep.fit_best_halo", return_value=fit):
                         row = fit_for_sweep("example", None, model, 100.0)
                     saved = pd.read_csv(StringIO(pd.DataFrame([row]).to_csv(index=False)))
                     self.assertEqual(saved.loc[0, f"{model}_physical_boundary_hit"], flagged)
@@ -37,9 +44,13 @@ class TestSweepResults(unittest.TestCase):
                         "feasible_density_fraction",
                     )
                     self.assertEqual(row[f"{model}_fit_error"], "")
+                    self.assertEqual(saved.loc[0, f"{model}_selection_failed_count"], 1)
+                    self.assertEqual(saved.loc[0, f"{model}_selection_selected_trial"], 3)
+                    records = json.loads(saved.loc[0, f"{model}_selection_trials_json"])
+                    self.assertEqual(records[0]["fit_error"], "did not converge")
 
     def test_failure_leaves_diagnostics_unknown(self):
-        with patch("run_nfw_bound_sweep.fit_halo", side_effect=ValueError("infeasible")):
+        with patch("run_nfw_bound_sweep.fit_best_halo", side_effect=ValueError("infeasible")):
             row = fit_for_sweep("example", None, "burkert", 100.0)
         self.assertEqual(row["burkert_fit_error"], "infeasible")
         self.assertEqual(row["burkert_physical_boundary_hit"], "")

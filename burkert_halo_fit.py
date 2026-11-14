@@ -266,9 +266,24 @@ def fit_halo(
         "model_kms": total,
         "residuals_kms": residuals,
     }
-    if not plot:
-        return result
-    
+    if plot:
+        plot_halo_fit(galaxy_id, result, output_path=output_path, model=model,
+                      max_scale_radius_kpc=max_scale_radius_kpc, show=show)
+    return result
+
+
+def plot_halo_fit(
+    galaxy_id, result, output_path=None, *, model="burkert",
+    max_scale_radius_kpc=DEFAULT_MAX_SCALE_RADIUS_KPC, show=True,
+):
+    """Plot an existing fit without running the optimizer again."""
+    halo_speed, label, density_name, radius_name = HALO_MODELS[model]
+    radius = result["radius_kpc"]
+    observed = result["observed_kms"]
+    error = result["error_kms"]
+    baryonic_squared = result["baryonic_squared_kms2"]
+    total = result["model_kms"]
+    halo = halo_speed(radius, result[f"{density_name}_msun_pc3"], result[f"{radius_name}_kpc"])
     fig, ax = plt.subplots()
     ax.errorbar(radius, observed, yerr=error, fmt="o", label="Observed")
     baryonic = np.sqrt(np.where(baryonic_squared >= 0, baryonic_squared, np.nan))
@@ -293,12 +308,13 @@ def fit_halo(
         plt.show()
     plt.close(fig)
 
-    return result
 
 
 def fit_burkert(galaxy_id, df=None, output_path=None):
     """Fit a Burkert halo for callers such as main.py."""
-    return fit_halo(galaxy_id, df=df, output_path=output_path, model="burkert")
+    from halo_fit_selection import fit_best_halo
+    return fit_best_halo(galaxy_id, df=df, output_path=output_path,
+                         model="burkert", plot=True, report=True)
 
 
 if __name__ == "__main__":
@@ -321,12 +337,15 @@ if __name__ == "__main__":
     if galaxy_id is None:
         parser.error(f"Galaxy {requested_id!r} was not found in SPARC data.")
 
+    from halo_fit_selection import fit_best_halo
+
     try:
-        fit_halo(
+        fit_best_halo(
             galaxy_id,
+            plot=True, report=True,
             df=df,
             model=args.model,
             max_scale_radius_kpc=args.max_scale_radius_kpc,
         )
-    except ValueError as error:
+    except (ValueError, RuntimeError) as error:
         parser.error(str(error))

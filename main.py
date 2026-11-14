@@ -3,7 +3,8 @@
 from pathlib import Path
 
 from best_fit_calculation import fit_rar
-from burkert_halo_fit import DEFAULT_MAX_SCALE_RADIUS_KPC, fit_halo
+from burkert_halo_fit import DEFAULT_MAX_SCALE_RADIUS_KPC
+from halo_fit_selection import fit_best_halo
 from compare_halo_fits import plot_halo_comparison
 from data_preprocess import load_sparc_dataset
 from filter_high_error_data import filter_data
@@ -71,9 +72,9 @@ def run_galaxy_workflow(data):
     halo_dir = OUTPUT_DIR / "halo_fits"
     for galaxy_id in galaxy_ids:
         try:
-            burkert = fit_halo(galaxy_id, df=data, model="burkert", show=False,
+            burkert = fit_best_halo(galaxy_id, df=data, model="burkert", show=False, plot=True, report=True,
                               output_path=halo_dir / f"{galaxy_id}_burkert_fit.png")
-            nfw = fit_halo(galaxy_id, df=data, model="nfw", show=False,
+            nfw = fit_best_halo(galaxy_id, df=data, model="nfw", show=False, plot=True, report=True,
                           max_scale_radius_kpc=cap,
                           output_path=halo_dir / f"{galaxy_id}_nfw{suffix}_fit.png")
         except (ValueError, RuntimeError) as error:
