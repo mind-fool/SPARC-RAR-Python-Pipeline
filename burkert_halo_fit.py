@@ -18,6 +18,19 @@ HALO_MODELS = {
 }
 
 
+def total_velocity_from_squared(baryonic_squared, halo_squared):
+    """Combine signed contributions in (km/s)^2 and return speed in km/s."""
+    total_squared = (
+        np.asarray(baryonic_squared, dtype=float)
+        + np.asarray(halo_squared, dtype=float)
+    )
+    if not np.all(np.isfinite(total_squared)):
+        raise ValueError("Total squared circular speed must be finite.")
+    if np.any(total_squared < 0):
+        raise ValueError("Total squared circular speed cannot be negative.")
+    return np.sqrt(total_squared)
+
+
 def fit_halo(
     galaxy_id, df=None, output_path=None, *, model="burkert", plot=True,
     max_scale_radius_kpc=DEFAULT_MAX_SCALE_RADIUS_KPC,
